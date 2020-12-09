@@ -1,0 +1,338 @@
+drop table if exists jdickinson1.national_field_report_v4;
+Create table jdickinson1.national_field_report_v4
+as(
+select 
+	ag.*
+  from
+(((
+select
+ LEFT((date_trunc('week', a.date_canvassed)) :: varchar(1024), 10) as week_of 
+,a.state_code
+, 'Upper Chamber' AS chamber
+,a.state_senate_district as district
+, sum (case when c.master_survey_question_id in ('4474') then 1 else 0 end) as ids_all_modes
+, sum (case when c.master_survey_response_id in ('21820')  then 1 else 0 end) as ones_all_modes
+-- the above codes are for strong support, but would have required another join to do by name. All the following code have this same convention
+,sum (case when c.master_survey_response_id in ('21821')  then 1 else 0 end) as twos_all_modes
+,sum (case when c.master_survey_response_id in ('21822')  then 1 else 0 end) as threes_all_modes
+,sum (case when c.master_survey_response_id in ('21823')  then 1 else 0 end) as fours_all_modes
+,sum (case when c.master_survey_response_id in ('21824')  then 1 else 0 end) as fives_all_modes
+,sum (case when c.master_survey_response_id in ('21825')  then 1 else 0 end) as support_other_all_modes
+,sum (case when c.master_survey_response_id in ('21826')  then 1 else 0 end) as not_voting_all_modes
+
+,sum (case when a.contact_type_id in ('142','19','81','1','4','133')  then 1 else 0 end) as phone_attempts
+-- a.contact_type_name in 'Distributed Call' ,'Auto Dial','Paid Call','Phone', 'Robocall','Relational call')
+, sum (case when c.master_survey_question_id in ('4474') and a.contact_type_id in ('142','19','81','1','4','133')  then 1 else 0 end) as total_ids_phones
+, sum (case when c.master_survey_response_id in ('21820') and a.contact_type_id in ('142','19','81','1','4','133')  then 1 else 0 end) as ones_phones
+,sum (case when c.master_survey_response_id in ('21821') and a.contact_type_id in ('142','19','81','1','4','133') then 1 else 0 end) as twos_phones
+,sum (case when c.master_survey_response_id in ('21822') and a.contact_type_id in ('142','19','81','1','4','133') then 1 else 0 end) as threes_phones
+,sum (case when c.master_survey_response_id in ('21823') and a.contact_type_id in ('142','19','81','1','4','133') then 1 else 0 end) as fours_phones
+,sum (case when c.master_survey_response_id in ('21824')  and a.contact_type_id in ('142','19','81','1','4','133') then 1 else 0 end) as fives_phones
+,sum (case when c.master_survey_response_id in ('21825') and a.contact_type_id in ('142','19','81','1','4','133') then 1 else 0 end) as support_other_phones
+,sum (case when c.master_survey_response_id in ('21826') and a.contact_type_id in ('142','19','81','1','4','133') then 1 else 0 end) as not_voting_phones
+
+,sum (case when a.contact_type_id in ('143','37','132') then 1 else 0 end) as text_attempts
+--a.contact_type_name in ('Distributed Text', 'SMS Text', 'Relational Text')
+, sum (case when c.master_survey_question_id in ('4474') and a.contact_type_id in ('143','37','132')  then 1 else 0 end) as total_ids_texts
+, sum (case when c.master_survey_response_id in ('21820') and a.contact_type_id in ('143','37','132')  then 1 else 0 end) as ones_texts
+,sum (case when c.master_survey_response_id in ('21821') and a.contact_type_id in ('143','37','132') then 1 else 0 end) as twos_texts
+,sum (case when c.master_survey_response_id in ('21822') and a.contact_type_id in ('143','37','132') then 1 else 0 end) as threes_texts
+,sum (case when c.master_survey_response_id in ('21823') and a.contact_type_id in ('143','37','132') then 1 else 0 end) as fours_texts
+,sum (case when c.master_survey_response_id in ('21824')  and a.contact_type_id in ('143','37','132') then 1 else 0 end) as fives_texts
+,sum (case when c.master_survey_response_id in ('21825') and a.contact_type_id in ('143','37','132') then 1 else 0 end) as support_other_texts
+,sum (case when c.master_survey_response_id in ('21826') and a.contact_type_id in ('143','37','132') then 1 else 0 end) as not_voting_texts
+
+,sum (case when a.contact_type_id in ('36','2','145')then 1 else 0 end) as walk_attempts
+--a.contact_type_name in ('Paid Walk','Walk', 'Relational Canvass')
+, sum (case when c.master_survey_question_id in ('4474') and a.contact_type_id in ('36','2','145')  then 1 else 0 end) as total_ids_walk
+, sum (case when c.master_survey_response_id in ('21820') and a.contact_type_id in ('36','2','145') then 1 else 0 end) as ones_walk
+,sum (case when c.master_survey_response_id in ('21821') and a.contact_type_id in ('36','2','145') then 1 else 0 end) as twos_walk
+,sum (case when c.master_survey_response_id in ('21822') and a.contact_type_id in ('36','2','145') then 1 else 0 end) as threes_walk
+,sum (case when c.master_survey_response_id in ('21823') and a.contact_type_id in ('36','2','145') then 1 else 0 end) as fours_walk
+,sum (case when c.master_survey_response_id in ('21824')  and a.contact_type_id in ('36','2','145') then 1 else 0 end) as fives_walk
+,sum (case when c.master_survey_response_id in ('21825') and a.contact_type_id in ('36','2','145') then 1 else 0 end) as support_other_walk
+,sum (case when c.master_survey_response_id in ('21826') and a.contact_type_id in ('36','2','145') then 1 else 0 end) as not_voting_walk
+
+,sum (case when a.contact_type_id ='130' then 1 else 0 end) as lit_drop
+--a.contact_type_name in ('Lit drop')
+, sum (case when c.master_survey_question_id in ('4474') and a.contact_type_id ='130'  then 1 else 0 end) as total_ids_litdrop
+, sum (case when c.master_survey_response_id in ('21820') and a.contact_type_id ='130' then 1 else 0 end) as ones_litdrop
+,sum (case when c.master_survey_response_id in ('21821') and a.contact_type_id ='130' then 1 else 0 end) as twos_litdrop
+,sum (case when c.master_survey_response_id in ('21822') and a.contact_type_id ='130' then 1 else 0 end) as threes_litdrop
+,sum (case when c.master_survey_response_id in ('21823') and a.contact_type_id ='130' then 1 else 0 end) as fours_litdrop
+,sum (case when c.master_survey_response_id in ('21824')  and a.contact_type_id ='130' then 1 else 0 end) as fives_litdrop
+,sum (case when c.master_survey_response_id in ('21825') and a.contact_type_id ='130' then 1 else 0 end) as support_other_litdrop
+,sum (case when c.master_survey_response_id in ('21826') and a.contact_type_id ='130' then 1 else 0 end) as not_voting_litdrop
+
+
+from phoenix_demsdlcc_vansync_derived.contacts_myv a 
+left join
+(
+SELECT
+	b.state_code
+  , b.contacts_contact_id
+  , b.master_survey_question_id
+  , b.master_survey_response_id
+FROM phoenix_demsdlcc_vansync_derived.responses_myv b
+WHERE b.master_survey_question_id in ('4475','4474')
+) c
+on a.state_code || a.contacts_contact_id = c.state_code||c.contacts_contact_id
+where
+(
+		(
+			a.state_code = 'AK' AND (a.date_ballot_canvassed::date > ('2020-08-19')::date)
+		)
+		
+		OR
+		(
+			a.state_code= 'FL' and (a.date_ballot_canvassed::date > ('2020-08-19')::date)
+		)
+		OR
+		(
+		 a.state_code= 'GA' and (a.date_ballot_canvassed::date > ('2020-06-10')::date)
+		)
+		OR
+		(
+		 	a.state_code= 'IA' and (a.date_ballot_canvassed::date > ('2020-06-03')::date)
+		)
+		OR 
+		(
+			a.state_code= 'KS' and (a.date_ballot_canvassed::date > ('2020-08-05')::date)
+		)
+		OR
+		(
+			a.state_code= 'MI' and (a.date_ballot_canvassed::date > ('2020-08-05')::date)
+		)
+		Or
+		(
+			a.state_code= 'MN' and (a.date_ballot_canvassed::date > ('2020-08-12')::date)
+		)
+		OR
+		(
+			a.state_code= 'MT' and (a.date_ballot_canvassed::date > ('2020-06-03')::date)
+		)
+		OR
+		(
+			a.state_code= 'NC' and (a.date_ballot_canvassed::date > ('2020-03-04')::date)
+		)
+		OR
+		(
+			a.state_code= 'PA' and (a.date_ballot_canvassed::date > ('2020-06-03')::date)
+		)
+		OR
+		(
+			a.state_code= 'TX' and (a.date_ballot_canvassed::date > ('2020-03-04')::date)
+		)
+	)
+and
+((a.committee_name like '%SD%') OR (a.committee_name like '%Senate%') OR(a.committee_name like '%Senator%'))
+
+GROUP BY 1,2,3,4)
+
+union all
+
+(select
+LEFT((date_trunc('week', a.date_canvassed)) :: varchar(1024), 10) as week_of 
+,a.state_code
+, 'Lower Chamber' AS chamber
+,a.state_house_district as district
+, sum (case when c.master_survey_question_id in ('4475') then 1 else 0 end) as ids_all_modes
+, sum (case when c.master_survey_response_id in ('21827')  then 1 else 0 end) as ones_all_modes
+-- the above codes are for strong support, but would have required another join to do by name. All the following code have this same convention
+,sum (case when c.master_survey_response_id in ('21828')  then 1 else 0 end) as twos_all_modes
+,sum (case when c.master_survey_response_id in ('21829')  then 1 else 0 end) as threes_all_modes
+,sum (case when c.master_survey_response_id in ('21830')  then 1 else 0 end) as fours_all_modes
+,sum (case when c.master_survey_response_id in ('21831')  then 1 else 0 end) as fives_all_modes
+,sum (case when c.master_survey_response_id in ('21832')  then 1 else 0 end) as support_other_all_modes
+,sum (case when c.master_survey_response_id in ('21833')  then 1 else 0 end) as not_voting_all_modes
+
+,sum (case when a.contact_type_id in ('142','19','81','1','4','133')  then 1 else 0 end) as phone_attempts
+-- a.contact_type_name in 'Distributed Call' ,'Auto Dial','Paid Call','Phone', 'Robocall','Relational call')
+, sum (case when c.master_survey_question_id in ('4475') and a.contact_type_id in ('142','19','81','1','4','133')  then 1 else 0 end) as total_ids_phones
+, sum (case when c.master_survey_response_id in ('21827') and a.contact_type_id in ('142','19','81','1','4','133')  then 1 else 0 end) as ones_phones
+,sum (case when c.master_survey_response_id in ('21828') and a.contact_type_id in ('142','19','81','1','4','133') then 1 else 0 end) as twos_phones
+,sum (case when c.master_survey_response_id in ('21829') and a.contact_type_id in ('142','19','81','1','4','133') then 1 else 0 end) as threes_phones
+,sum (case when c.master_survey_response_id in ('21830') and a.contact_type_id in ('142','19','81','1','4','133') then 1 else 0 end) as fours_phones
+,sum (case when c.master_survey_response_id in ('21831')  and a.contact_type_id in ('142','19','81','1','4','133') then 1 else 0 end) as fives_phones
+,sum (case when c.master_survey_response_id in ('21832') and a.contact_type_id in ('142','19','81','1','4','133') then 1 else 0 end) as support_other_phones
+,sum (case when c.master_survey_response_id in ('21833') and a.contact_type_id in ('142','19','81','1','4','133') then 1 else 0 end) as not_voting_phones
+
+,sum (case when a.contact_type_id in ('143','37','132') then 1 else 0 end) as text_attempts
+--a.contact_type_name in ('Distributed Text', 'SMS Text', 'Relational Text')
+, sum (case when c.master_survey_question_id in ('4475') and a.contact_type_id in ('143','37','132')  then 1 else 0 end) as total_ids_texts
+, sum (case when c.master_survey_response_id in ('21827') and a.contact_type_id in ('143','37','132')  then 1 else 0 end) as ones_texts
+,sum (case when c.master_survey_response_id in ('21828') and a.contact_type_id in ('143','37','132') then 1 else 0 end) as twos_texts
+,sum (case when c.master_survey_response_id in ('21829') and a.contact_type_id in ('143','37','132') then 1 else 0 end) as threes_texts
+,sum (case when c.master_survey_response_id in ('21830') and a.contact_type_id in ('143','37','132') then 1 else 0 end) as fours_texts
+,sum (case when c.master_survey_response_id in ('21831')  and a.contact_type_id in ('143','37','132') then 1 else 0 end) as fives_texts
+,sum (case when c.master_survey_response_id in ('21832') and a.contact_type_id in ('143','37','132') then 1 else 0 end) as support_other_texts
+,sum (case when c.master_survey_response_id in ('21833') and a.contact_type_id in ('143','37','132') then 1 else 0 end) as not_voting_texts
+
+,sum (case when a.contact_type_id in ('36','2','145')then 1 else 0 end) as walk_attempts
+--a.contact_type_name in ('Paid Walk','Walk', 'Relational Canvass')
+, sum (case when c.master_survey_question_id in ('4475') and a.contact_type_id in ('36','2','145')  then 1 else 0 end) as total_ids_walk
+, sum (case when c.master_survey_response_id in ('21827') and a.contact_type_id in ('36','2','145') then 1 else 0 end) as ones_walk
+,sum (case when c.master_survey_response_id in ('21828') and a.contact_type_id in ('36','2','145') then 1 else 0 end) as twos_walk
+,sum (case when c.master_survey_response_id in ('21829') and a.contact_type_id in ('36','2','145') then 1 else 0 end) as threes_walk
+,sum (case when c.master_survey_response_id in ('21830') and a.contact_type_id in ('36','2','145') then 1 else 0 end) as fours_walk
+,sum (case when c.master_survey_response_id in ('21831')  and a.contact_type_id in ('36','2','145') then 1 else 0 end) as fives_walk
+,sum (case when c.master_survey_response_id in ('21832') and a.contact_type_id in ('36','2','145') then 1 else 0 end) as support_other_walk
+,sum (case when c.master_survey_response_id in ('21833') and a.contact_type_id in ('36','2','145') then 1 else 0 end) as not_voting_walk
+
+,sum (case when a.contact_type_id ='130' then 1 else 0 end) as lit_drop
+--a.contact_type_name in ('Lit drop')
+, sum (case when c.master_survey_question_id in ('4475') and a.contact_type_id ='130'  then 1 else 0 end) as total_ids_litdrop
+, sum (case when c.master_survey_response_id in ('21827') and a.contact_type_id ='130' then 1 else 0 end) as ones_litdrop
+,sum (case when c.master_survey_response_id in ('21828') and a.contact_type_id ='130' then 1 else 0 end) as twos_litdrop
+,sum (case when c.master_survey_response_id in ('21829') and a.contact_type_id ='130' then 1 else 0 end) as threes_litdrop
+,sum (case when c.master_survey_response_id in ('21830') and a.contact_type_id ='130' then 1 else 0 end) as fours_litdrop
+,sum (case when c.master_survey_response_id in ('21831')  and a.contact_type_id ='130' then 1 else 0 end) as fives_litdrop
+,sum (case when c.master_survey_response_id in ('21832') and a.contact_type_id ='130' then 1 else 0 end) as support_other_litdrop
+,sum (case when c.master_survey_response_id in ('21833') and a.contact_type_id ='130' then 1 else 0 end) as not_voting_litdrop
+
+
+from phoenix_demsdlcc_vansync_derived.contacts_myv a 
+left join
+(
+SELECT
+	b.state_code
+  , b.contacts_contact_id
+  , b.master_survey_question_id
+  , b.master_survey_response_id
+FROM phoenix_demsdlcc_vansync_derived.responses_myv b
+WHERE b.master_survey_question_id in ('4475','4474')
+) c
+on a.state_code || a.contacts_contact_id = c.state_code||c.contacts_contact_id
+where
+(
+		(
+			a.state_code = 'AK' AND (a.date_ballot_canvassed::date > ('2020-08-19')::date)
+		)
+		
+		OR
+		(
+			a.state_code= 'FL' and (a.date_ballot_canvassed::date > ('2020-08-19')::date)
+		)
+		OR
+		(
+		 a.state_code= 'GA' and (a.date_ballot_canvassed::date > ('2020-06-10')::date)
+		)
+		OR
+		(
+		 	a.state_code= 'IA' and (a.date_ballot_canvassed::date > ('2020-06-03')::date)
+		)
+		OR 
+		(
+			a.state_code= 'KS' and (a.date_ballot_canvassed::date > ('2020-08-05')::date)
+		)
+		OR
+		(
+			a.state_code= 'MI' and (a.date_ballot_canvassed::date > ('2020-08-05')::date)
+		)
+		Or
+		(
+			a.state_code= 'MN' and (a.date_ballot_canvassed::date > ('2020-08-12')::date)
+		)
+		OR
+		(
+			a.state_code= 'MT' and (a.date_ballot_canvassed::date > ('2020-06-03')::date)
+		)
+		OR
+		(
+			a.state_code= 'NC' and (a.date_ballot_canvassed::date > ('2020-03-04')::date)
+		)
+		OR
+		(
+			a.state_code= 'PA' and (a.date_ballot_canvassed::date > ('2020-06-03')::date)
+		)
+		OR
+		(
+			a.state_code= 'TX' and (a.date_ballot_canvassed::date > ('2020-03-04')::date)
+		)
+	)
+and
+((a.committee_name like '%HD%') OR (a.committee_name like '%House%') OR(a.committee_name like '%Representative%')OR (a.committee_name = 'Art Staed for State Represenative'))
+group by 1,2,3,4)
+union all 
+
+(select
+LEFT((date_trunc('week', a.date_canvassed)) :: varchar(1024), 10) as week_of 
+,a.state_code
+, 'Joint Program' AS chamber
+,a.state_house_district as district
+, sum (case when c.master_survey_question_id in ('4572') then 1 else 0 end) as ids_all_modes
+, sum (case when c.master_survey_response_id in ('22245')  then 1 else 0 end) as ones_all_modes
+-- the above codes are for strong support, but would have required another join to do by name. All the following code have this same convention
+,sum (case when c.master_survey_response_id in ('22246')  then 1 else 0 end) as twos_all_modes
+,sum (case when c.master_survey_response_id in ('22247')  then 1 else 0 end) as threes_all_modes
+,sum (case when c.master_survey_response_id in ('22248')  then 1 else 0 end) as fours_all_modes
+,sum (case when c.master_survey_response_id in ('22249')  then 1 else 0 end) as fives_all_modes
+,sum (case when c.master_survey_response_id in ('21832')  then 1 else 0 end) as support_other_all_modes
+,sum (case when c.master_survey_response_id in ('21833')  then 1 else 0 end) as not_voting_all_modes
+
+,sum (case when a.contact_type_id in ('142','19','81','1','4','133')  then 1 else 0 end) as phone_attempts
+-- a.contact_type_name in 'Distributed Call' ,'Auto Dial','Paid Call','Phone', 'Robocall','Relational call')
+, sum (case when c.master_survey_question_id in ('4572') and a.contact_type_id in ('142','19','81','1','4','133')  then 1 else 0 end) as total_ids_phones
+, sum (case when c.master_survey_response_id in ('22245') and a.contact_type_id in ('142','19','81','1','4','133')  then 1 else 0 end) as ones_phones
+,sum (case when c.master_survey_response_id in ('22246') and a.contact_type_id in ('142','19','81','1','4','133') then 1 else 0 end) as twos_phones
+,sum (case when c.master_survey_response_id in ('22247') and a.contact_type_id in ('142','19','81','1','4','133') then 1 else 0 end) as threes_phones
+,sum (case when c.master_survey_response_id in ('22248') and a.contact_type_id in ('142','19','81','1','4','133') then 1 else 0 end) as fours_phones
+,sum (case when c.master_survey_response_id in ('22249')  and a.contact_type_id in ('142','19','81','1','4','133') then 1 else 0 end) as fives_phones
+ ,sum (case when c.master_survey_response_id in ('21832') and a.contact_type_id in ('142','19','81','1','4','133') then 1 else 0 end) as support_other_phones
+,sum (case when c.master_survey_response_id in ('21833') and a.contact_type_id in ('142','19','81','1','4','133') then 1 else 0 end) as not_voting_phones
+
+
+,sum (case when a.contact_type_id in ('143','37','132') then 1 else 0 end) as text_attempts
+--a.contact_type_name in ('Distributed Text', 'SMS Text', 'Relational Text')
+, sum (case when c.master_survey_question_id in ('4572') and a.contact_type_id in ('143','37','132')  then 1 else 0 end) as total_ids_texts
+, sum (case when c.master_survey_response_id in ('22245') and a.contact_type_id in ('143','37','132')  then 1 else 0 end) as ones_texts
+,sum (case when c.master_survey_response_id in ('22246') and a.contact_type_id in ('143','37','132') then 1 else 0 end) as twos_texts
+,sum (case when c.master_survey_response_id in ('22247') and a.contact_type_id in ('143','37','132') then 1 else 0 end) as threes_texts
+,sum (case when c.master_survey_response_id in ('22248') and a.contact_type_id in ('143','37','132') then 1 else 0 end) as fours_texts
+,sum (case when c.master_survey_response_id in ('22249')  and a.contact_type_id in ('143','37','132') then 1 else 0 end) as fives_texts
+,sum (case when c.master_survey_response_id in ('21832') and a.contact_type_id in ('143','37','132') then 1 else 0 end) as support_other_texts
+,sum (case when c.master_survey_response_id in ('21833') and a.contact_type_id in ('143','37','132') then 1 else 0 end) as not_voting_texts
+ 
+,sum (case when a.contact_type_id in ('36','2','145')then 1 else 0 end) as walk_attempts
+--a.contact_type_name in ('Paid Walk','Walk', 'Relational Canvass')
+, sum (case when c.master_survey_question_id in ('4572') and a.contact_type_id in ('36','2','145')  then 1 else 0 end) as total_ids_walk
+, sum (case when c.master_survey_response_id in ('22245') and a.contact_type_id in ('36','2','145') then 1 else 0 end) as ones_walk
+,sum (case when c.master_survey_response_id in ('22246') and a.contact_type_id in ('36','2','145') then 1 else 0 end) as twos_walk
+,sum (case when c.master_survey_response_id in ('22247') and a.contact_type_id in ('36','2','145') then 1 else 0 end) as threes_walk
+,sum (case when c.master_survey_response_id in ('22248') and a.contact_type_id in ('36','2','145') then 1 else 0 end) as fours_walk
+,sum (case when c.master_survey_response_id in ('22249')  and a.contact_type_id in ('36','2','145') then 1 else 0 end) as fives_walk
+ ,sum (case when c.master_survey_response_id in ('21832') and a.contact_type_id in ('36','2','145') then 1 else 0 end) as support_other_walk
+,sum (case when c.master_survey_response_id in ('21833') and a.contact_type_id in ('36','2','145') then 1 else 0 end) as not_voting_walk
+
+,sum (case when a.contact_type_id ='130' then 1 else 0 end) as lit_drop
+--a.contact_type_name in ('Lit drop')
+, sum (case when c.master_survey_question_id in ('4572') and a.contact_type_id ='130'  then 1 else 0 end) as total_ids_litdrop
+, sum (case when c.master_survey_response_id in ('22245') and a.contact_type_id ='130' then 1 else 0 end) as ones_litdrop
+,sum (case when c.master_survey_response_id in ('22246') and a.contact_type_id ='130' then 1 else 0 end) as twos_litdrop
+,sum (case when c.master_survey_response_id in ('22247') and a.contact_type_id ='130' then 1 else 0 end) as threes_litdrop
+,sum (case when c.master_survey_response_id in ('22248') and a.contact_type_id ='130' then 1 else 0 end) as fours_litdrop
+,sum (case when c.master_survey_response_id in ('22249')  and a.contact_type_id ='130' then 1 else 0 end) as fives_litdrop
+,sum (case when c.master_survey_response_id in ('21832') and a.contact_type_id ='130' then 1 else 0 end) as support_other_litdrop
+,sum (case when c.master_survey_response_id in ('21833') and a.contact_type_id ='130' then 1 else 0 end) as not_voting_litdrop
+
+
+from phoenix_demsdlcc_vansync_derived.contacts_myv a 
+left join
+(
+SELECT
+	b.state_code
+  , b.contacts_contact_id
+  , b.master_survey_question_id
+  , b.master_survey_response_id
+FROM phoenix_demsdlcc_vansync_derived.responses_myv b
+WHERE b.master_survey_question_id in ('4572')
+) c
+on a.state_code || a.contacts_contact_id = c.state_code||c.contacts_contact_id
+where
+a.date_canvassed > '2020-08-05'
+and
+(a.state_code = 'AZ')
+and
+(a.committee_name in ('LD 18 Democrats','LD 6 Central Committee','LD 28 Coordinated Campaign','Arizona Democratic Legislative Caucus'))
+GROUP BY 1,2,3,4))) ag
+)
