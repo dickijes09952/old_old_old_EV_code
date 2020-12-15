@@ -1,0 +1,489 @@
+DROP TABLE IF EXISTS jdickinson1.rb_2020_step_01v2;
+CREATE TABLE jdickinson1.rb_2020_step_01v2 AS
+(
+SELECT
+	b.state_code
+	, b.myv_van_id
+  ,b.person_id
+	, b.date_voted
+	, b.voting_method
+	, b.date_request_received
+	, b.date_ballot_mailed
+	, CASE
+		WHEN 
+	
+		b.reason_ballot_rejected is not null THEN 'Ballot Rejected' ELSE 'Ballot Accepted'
+		END AS ballot_status
+FROM
+(
+SELECT
+	a.*
+	, ROW_NUMBER() OVER (PARTITION BY a.state_code || a.person_id ORDER BY a.van_datetime_modified DESC)) AS rank
+FROM
+(
+SELECT DISTINCT
+	ca.state_code
+	, ca.myv_van_id
+  ,ca.person_id
+	, CASE WHEN ca.date_ballot_received IS NULL
+			AND ca.date_early_voted IS NULL
+			THEN NULL
+		WHEN ca.date_ballot_received IS NOT NULL
+			AND ca.date_early_voted IS NULL
+			THEN ca.date_ballot_received
+		WHEN ca.date_ballot_received IS NULL
+			AND ca.date_early_voted IS NOT NULL
+			THEN ca.date_early_voted
+		WHEN ca.date_ballot_received IS NOT NULL
+			AND ca.date_early_voted IS NOT NULL
+			AND (ca.date_ballot_received::date < ca.date_early_voted::date)
+			THEN ca.date_ballot_received
+		WHEN ca.date_ballot_received IS NOT NULL
+			AND ca.date_early_voted IS NOT NULL
+			AND (ca.date_ballot_received::date > ca.date_early_voted::date)
+			THEN ca.date_early_voted
+		WHEN ca.date_ballot_received::date = ca.date_early_voted::date
+			AND ca.date_ballot_received IS NOT NULL
+			THEN ca.date_ballot_received
+		WHEN ca.date_ballot_received IS NOT NULL
+			AND ca.date_early_voted IS NOT NULL
+			AND ca.date_ballot_received = ca.date_early_voted
+			THEN ca.date_ballot_received
+		ELSE NULL
+		END AS date_voted
+	, CASE WHEN ca.date_ballot_received IS NULL
+			AND ca.date_early_voted IS NULL
+			THEN NULL
+		WHEN ca.date_ballot_received IS NOT NULL
+			AND ca.date_early_voted IS NULL
+			THEN 'VBM'
+		WHEN ca.date_ballot_received IS NULL
+			AND ca.date_early_voted IS NOT NULL
+			THEN 'Early'
+		WHEN ca.date_ballot_received IS NOT NULL
+			AND ca.date_early_voted IS NOT NULL
+			AND (ca.date_ballot_received::date < ca.date_early_voted::date)
+			THEN 'VBM'
+		WHEN ca.date_ballot_received IS NOT NULL
+			AND ca.date_early_voted IS NOT NULL
+			AND (ca.date_ballot_received::date > ca.date_early_voted::date)
+			THEN 'Early' 
+		WHEN ca.date_ballot_received IS NOT NULL
+			AND ca.date_early_voted IS NOT NULL
+			AND ca.date_ballot_received = ca.date_early_voted
+			THEN 'Unclear'
+		ELSE NULL
+		END AS voting_method
+	, ca.date_request_received
+	, ca.date_ballot_mailed
+	, ca.van_datetime_modified
+	,ca.reason_ballot_rejected
+FROM phoenix_analytics.person_early_votes_2020 ca
+WHERE
+-- these are the dates where ballots drop in each state
+	(
+		(
+			ca.state_code = 'AK' AND (ca.date_ballot_received::date > ('2020-09-18')::date OR ca.date_early_voted::date > ('2020-09-18')::date)
+		)
+		OR
+		(
+			ca.state_code= 'AZ' AND (ca.date_ballot_received::date > ('2020-10-04')::date OR ca.date_early_voted::date > ('2020-10-04')::date)
+		)
+		OR
+		(
+			ca.state_code= 'FL' and (ca.date_ballot_received::date > ('2020-09-24')::date OR ca.date_early_voted::date > ('2020-09-24')::date)
+		)
+		OR
+		(
+		 ca.state_code= 'GA' and (ca.date_ballot_received::date > ('2020-09-15')::date OR ca.date_early_voted::date > ('2020-09-15')::date)
+		)
+		OR
+		(
+		 	ca.state_code= 'IA' and (ca.date_ballot_received::date > ('2020-10-05')::date OR ca.date_early_voted::date > ('2020-10-05')::date)
+		)
+		OR 
+		(
+			ca.state_code= 'KS' and (ca.date_ballot_received::date > ('2020-10-14')::date OR ca.date_early_voted::date > ('2020-10-14')::date)
+		)
+		OR
+		(
+		ca.state_code= 'MO' and (ca.date_ballot_received::date > ('2020-09-21')::date OR ca.date_early_voted::date > ('2020-09-21')::date)
+		)
+		OR
+		(
+			ca.state_code= 'ME' and (ca.date_ballot_received::date > ('2020-10-03')::date OR ca.date_early_voted::date > ('2020-10-03')::date)
+		)
+		OR
+		(
+			ca.state_code= 'MI' and (ca.date_ballot_received::date > ('2020-09-18')::date OR ca.date_early_voted::date > ('2020-09-18')::date)
+		)
+		Or
+		(
+			ca.state_code= 'MN' and (ca.date_ballot_received::date > ('2020-09-11')::date OR ca.date_early_voted::date > ('2020-09-11')::date)
+		)
+		OR
+		(
+			ca.state_code= 'MT' and (ca.date_ballot_received::date > ('2020-10-04')::date OR ca.date_early_voted::date > ('2020-10-04')::date)
+		)
+		
+		OR
+		(
+			ca.state_code= 'NV' and (ca.date_ballot_received::date > ('2020-10-13')::date OR ca.date_early_voted::date > ('2020-10-13')::date)
+		)
+		OR
+		(
+			ca.state_code= 'NH' and (ca.date_ballot_received::date > ('2020-10-03')::date OR ca.date_early_voted::date > ('2020-10-03')::date)
+		)
+		
+		OR
+		(
+			ca.state_code= 'NC' and (ca.date_ballot_received::date > ('2020-09-04')::date OR ca.date_early_voted::date > ('2020-09-04')::date)
+		)
+		OR
+		(
+			ca.state_code= 'PA' and (ca.date_ballot_received::date > ('2020-09-14')::date OR ca.date_early_voted::date > ('2020-09-14')::date)
+		)
+		OR
+		(
+			ca.state_code= 'TX' and (ca.date_ballot_received::date > ('2020-09-18')::date OR ca.date_early_voted::date > ('2020-09-18')::date)
+		)
+		OR
+		(
+			ca.state_code= 'WI' and (ca.date_ballot_received::date > ('2020-08-11')::date OR ca.date_early_voted::date > ('2020-08-11')::date)
+		
+		)
+		--OR
+		--(
+			b.reason_ballot_rejected is not null
+		
+		--)
+		
+)
+) a
+) b
+WHERE b.rank = 1
+)
+;
+
+
+
+		--OR
+		--(
+			b.reason_ballot_rejected is not null
+		
+		--)
+
+
+
+
+-- NEXT ADD IN ANALYTICS.PERSON DATA -- this script should run once a day
+DROP TABLE IF EXISTS jdickinson1.rb_2020_step_02v2;
+CREATE TABLE jdickinson1.rb_2020_step_02v2 AS(
+SELECT
+	b.state_code
+	, b.myv_van_id
+	, d.person_id
+	, d.sos_id
+	, b.date_voted
+	, b.voting_method
+	, b.ballot_status
+	, d.state_house_district_latest
+	, d.state_senate_district_latest
+	, d.county_name
+	, d.van_precinct_name
+	, d.age
+	, d.ethnicity
+	, d.gender
+	, d.party_name_dnc
+FROM jdickinson1.rb_2020_step_01v2 b
+LEFT JOIN
+(
+SELECT
+	c.state_code
+	, c.myv_van_id
+	, c.person_id
+	, c.sos_id
+	, c.state_house_district_latest
+	, c.state_senate_district_latest
+	, c.county_name
+	, c.van_precinct_name
+	, c.age_combined AS age
+	, CASE
+		WHEN c.ethnicity_combined = 'A' THEN 'AAPI'
+		WHEN c.ethnicity_combined = 'B' THEN 'Black'
+		WHEN c.ethnicity_combined = 'H' THEN 'Latinx'
+		WHEN c.ethnicity_combined = 'N' THEN 'Native American'
+		WHEN c.ethnicity_combined = 'W' THEN 'White'
+		ELSE 'Race Other/Unknown'
+		END AS ethnicity
+	, c.gender_combined AS gender
+	, c.party_name_dnc
+FROM phoenix_analytics.person c
+) d ON b.state_code || b.person_id = d.state_code || d.person_id
+)
+;
+
+
+
+
+
+
+DROP TABLE IF EXISTS jdickinson1.rb_2020_step_03v2;
+CREATE TABLE jdickinson1.rb_2020_step_03v2 AS
+SELECT
+	b.*
+	, e.turnout_score
+	, e.state_house_support_score
+	, e.state_senate_support_score
+	, e.zero_to_one_turnout
+	, e.zero_to_one_state_house_support_score
+	, e.zero_to_one_state_senate_support_score
+	,case when f.person_id is not null then 'New Voter' else 'Previous Voter' end as new_voter_status
+FROM jdickinson1.rb_2020_step_02 b
+LEFT JOIN tpietrzyk.scores_reformatted_20200923 e ON b.state_code || b.myv_van_id = e.state_code || e.myv_van_id -- REMEMBER TO SWITCH OUT THIS TABLE AS NEEDED!!!
+left join jdickinson1.ev_av_2020_not_voted f on b.state_code || b.person_id = f.state_code || f.person_id
+;
+
+
+
+
+
+
+
+
+-- PLAYING AROUND WITH INITIAL AGGREGATIONS- this script should run every day
+DROP TABLE IF EXISTS jdickinson1.rb_2020_aggregation_v2;
+CREATE TABLE jdickinson1.rb_2020_aggregation_v2 AS
+SELECT
+	ag.*
+	,case when d.district_of_interest = 'x' then 'District of Interest' else 'Remaining Districts' end as district_of_interest
+FROM
+(
+(
+SELECT
+	a.state_code
+	, 'Lower Chamber' AS chamber
+	, a.state_house_district_latest AS district
+	,a.county_name
+	, CASE WHEN a.state_code IN  ('MI','TX','SC','IN','AL','WI','MN','TN','VA','MS','WA','GA','OH','MO','IL','HI')
+	THEN 'Non-Partisan' ELSE 'Partisan' END as partisan_states
+	,case when a.state_code in ('NH', 'ME', 'NC', 'PA', 'GA', 'FL', 'MI', 'WI', 'IA', 'MN', 'TX', 'AZ', 'AK', 'MT', 'WV', 'KS') THEN 'Target' else 'Remaining States' 
+	end as target_states
+	,sum(case when a.new_voter_status='New Voter' and a.date_voted is not null then 1 else 0 end) as first_time_voters
+,SUM(CASE WHEN a.date_voted IS NOT NULL AND a.ballot_status = 'Ballot Rejected' AND a.zero_to_one_state_house_support_score IS NOT NULL THEN 1 ELSE 0 END) AS scored_votes_rejected
+ ,ROUND(SUM(a.zero_to_one_state_house_support_score * (CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.zero_to_one_state_house_support_score IS NOT NULL then 1 ELSE 0 END)::float), 0) AS rejected_projected_dem_ballots
+ ,ROUND(SUM(a.zero_to_one_state_house_support_score * (CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.zero_to_one_state_house_support_score IS NOT NULL then 1 ELSE 0 END)::float), 0) AS accepted_projected_dem_ballots
+, SUM(CASE WHEN a.date_voted IS NOT NULL THEN 1 ELSE 0 END) AS ballots_submitted
+,sum(case when a.date_voted is not null and a.ballot_status = 'Ballot Rejected' then 1 else 0 end) as ballots_rejected
+,sum (case when a.date_voted is not null and a.ballot_status = 'Ballot Cancelled' then 1 else 0 end) as ballots_cancelled_by_voter
+,sum (case when a.date_voted is not null and a.ballot_status = 'Ballot Accepted' then 1 else 0 end) as ballots_approved
+, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.zero_to_one_state_house_support_score IS NOT NULL THEN 1 ELSE 0 END) AS scored_people_who_submitted_votes
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.party_name_dnc = 'Democratic' THEN 1 ELSE 0 END) AS reg_dem_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.party_name_dnc = 'Republican' THEN 1 ELSE 0 END) AS reg_repub_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.party_name_dnc NOT IN ('Democratic', 'Republican') AND a.party_name_dnc IS NOT NULL THEN 1 ELSE 0 END) AS reg_ind_or_third_party_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.party_name_dnc IS NULL THEN 1 ELSE 0 END) AS no_party_reg_ballots_submitted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.party_name_dnc = 'Democratic' THEN 1 ELSE 0 END) AS dem_ballot_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.party_name_dnc = 'Republican' THEN 1 ELSE 0 END) AS repub_ballot_rejected
+	 ,SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.party_name_dnc = 'Democratic' THEN 1 ELSE 0 END) AS dem_ballot_Accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.party_name_dnc = 'Republican' THEN 1 ELSE 0 END) AS repub_ballot_Accepted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.ethnicity = 'AAPI' THEN 1 ELSE 0 END) AS aapi_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.ethnicity = 'Black' THEN 1 ELSE 0 END) AS black_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.ethnicity = 'Latinx' THEN 1 ELSE 0 END) AS latinx_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.ethnicity = 'Native American' THEN 1 ELSE 0 END) AS native_american_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.ethnicity = 'White' THEN 1 ELSE 0 END) AS white_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.ethnicity = 'Other Race' THEN 1 ELSE 0 END) AS other_race_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.ethnicity = 'Race Unknown' THEN 1 ELSE 0 END) AS race_unknown_ballots_submitted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.ethnicity = 'AAPI' THEN 1 ELSE 0 END) AS aapi_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.ethnicity = 'Black' THEN 1 ELSE 0 END) AS black_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.ethnicity = 'Latinx' THEN 1 ELSE 0 END) AS latinx_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.ethnicity = 'Native American' THEN 1 ELSE 0 END) AS native_american_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.ethnicity = 'White' THEN 1 ELSE 0 END) AS white_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.ethnicity = 'Other Race' THEN 1 ELSE 0 END) AS other_race_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.ethnicity = 'Race Unknown' THEN 1 ELSE 0 END) AS race_unknown_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.ethnicity = 'AAPI' THEN 1 ELSE 0 END) AS aapi_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.ethnicity = 'Black' THEN 1 ELSE 0 END) AS black_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.ethnicity = 'Latinx' THEN 1 ELSE 0 END) AS latinx_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.ethnicity = 'Native American' THEN 1 ELSE 0 END) AS native_american_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.ethnicity = 'White' THEN 1 ELSE 0 END) AS white_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.ethnicity = 'Other Race' THEN 1 ELSE 0 END) AS other_race_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.ethnicity = 'Race Unknown' THEN 1 ELSE 0 END) AS race_unknown_ballots_accepted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.age BETWEEN 18 AND 24 THEN 1 ELSE 0 END) AS age_18_to_24_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.age BETWEEN 25 AND 34 THEN 1 ELSE 0 END) AS age_25_to_34_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.age BETWEEN 35 AND 49 THEN 1 ELSE 0 END) AS age_35_to_49_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.age BETWEEN 50 AND 64 THEN 1 ELSE 0 END) AS age_50_to_64_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.age >= 65 THEN 1 ELSE 0 END) AS age_65_plus_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND (a.age <= 17 OR a.age IS NULL) THEN 1 ELSE 0 END) AS age_unknown_ballots_submitted
+		, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.age BETWEEN 18 AND 24 THEN 1 ELSE 0 END) AS age_18_to_24_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.age BETWEEN 25 AND 34 THEN 1 ELSE 0 END) AS age_25_to_34_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.age BETWEEN 35 AND 49 THEN 1 ELSE 0 END) AS age_35_to_49_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.age BETWEEN 50 AND 64 THEN 1 ELSE 0 END) AS age_50_to_64_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.age >= 65 THEN 1 ELSE 0 END) AS age_65_plus_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND (a.age <= 17 OR a.age IS NULL) THEN 1 ELSE 0 END) AS age_unknown_ballots_rejected
+		, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.age BETWEEN 18 AND 24 THEN 1 ELSE 0 END) AS age_18_to_24_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.age BETWEEN 25 AND 34 THEN 1 ELSE 0 END) AS age_25_to_34_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.age BETWEEN 35 AND 49 THEN 1 ELSE 0 END) AS age_35_to_49_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.age BETWEEN 50 AND 64 THEN 1 ELSE 0 END) AS age_50_to_64_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.age >= 65 THEN 1 ELSE 0 END) AS age_65_plus_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND (a.age <= 17 OR a.age IS NULL) THEN 1 ELSE 0 END) AS age_unknown_ballots_accepted
+	,b.total_voters
+	, CASE WHEN a.state_code IN ('AK','AR','AZ','CA','CO','CT','DC','DE','FL','IA','ID','KS','KY','LA','MA','MD','ME','MT','NC','ND','NE'
+,'NH','NJ','NM','NV','NY','OK','OR','PA','RI','SD','UT','VT','WV','WY') THEN b.reg_dems ELSE NULL end AS reg_dems
+	, CASE WHEN a.state_code IN ('AK','AR','AZ','CA','CO','CT','DC','DE','FL','IA','ID','KS','KY','LA','MA','MD','ME','MT','NC','ND','NE'
+,'NH','NJ','NM','NV','NY','OK','OR','PA','RI','SD','UT','VT','WV','WY') THEN b.reg_repubs ELSE NULL end AS reg_repubs
+	,b.race_registered_white
+	,b.race_registered_non_white
+	,g.projected_turnout
+FROM jdickinson1.rb_2020_step_03v2 a
+left join 
+jdickinson1.ev_crosswalk e on e.state_code || e.state_house_district_latest = a.state_code || a.state_house_district_latest AND e.chamber = 'state_house'
+ left JOIN 
+ tpietrzyk.score_based_turnout_projections_20200618 g ON e.state_code ||e.state_house_district_civis= g.state_code || g.state_house_district_civis AND g.chamber = 'state_house'
+
+LEFT JOIN
+(
+SELECT
+	ap.state_code
+	, ap.state_house_district_latest AS district
+	,ap.county_name
+	, COUNT(DISTINCT ap.person_id) AS total_voters
+	, SUM(CASE WHEN ap.party_name_dnc = 'Democratic' THEN 1 ELSE 0 END) AS reg_dems
+	, SUM(CASE WHEN ap.party_name_dnc = 'Republican' THEN 1 ELSE 0 END) AS reg_repubs
+		,SUM(CASE WHEN ap.ethnicity_combined = 'W' THEN 1 ELSE 0 END) AS race_registered_white
+,SUM(CASE WHEN ap.ethnicity_combined IS NULL OR ap.ethnicity_combined != 'W' THEN 1 ELSE 0 END) AS race_registered_non_white
+FROM phoenix_analytics.person ap
+WHERE ap.state_house_district_latest IS NOT NULL
+	AND ap.state_senate_district_latest IS NOT NULL
+	AND ap.state_code IN ('AK','AR','AZ','CA','CO','CT','DC','DE','FL','GA','MI','MN','IA','ID','KS','KY','LA','MA','MD','MO','ME','MT','NC','ND','NE','NH','NJ','NM','NV','NY','OK','OR','PA','RI','SD','UT','VT','WV','WI','WY')
+
+	AND ap.reg_voter_flag = TRUE
+	AND ap.reg_record_merged = FALSE
+	AND ap.is_deceased = FALSE
+	AND ap.out_of_state_ncoa = FALSE
+GROUP BY 1, 2, 3
+ORDER BY 1, 2, 3
+) b ON a.state_code || a.state_house_district_latest || a.county_name = b.state_code || b.district || b.county_name
+WHERE a.state_house_district_latest IS NOT NULL
+GROUP BY 1, 2, 3, 4 ,5,6,b.total_voters, b.reg_dems, b.reg_repubs,b.race_registered_white,b.race_registered_non_white, g.projected_turnout
+ORDER BY 1, 2, 3, 4, 5
+)
+UNION ALL
+(
+SELECT
+	a.state_code
+	, 'Upper Chamber' AS chamber
+	, a.state_senate_district_latest AS district
+	,a.county_name
+	, CASE WHEN a.state_code IN  ('MI','TX','SC','IN','AL','WI','MN','TN','VA','MS','WA','GA','OH','MO','IL','HI')
+	THEN 'Non-Partisan' ELSE 'Partisan' END as partisan_states
+	,case when a.state_code in ('NH', 'ME', 'NC', 'PA', 'GA', 'FL', 'MI', 'WI', 'IA', 'MN', 'TX', 'AZ', 'AK', 'MT', 'WV', 'KS') THEN 'Target' else 'Remaining States' 
+	end as target_states
+	,sum(case when a.new_voter_status='New Voter' and a.date_voted is not null then 1 else 0 end) as first_time_voters
+	,SUM(CASE WHEN a.date_voted IS NOT NULL AND a.ballot_status = 'Ballot Rejected' AND a.zero_to_one_state_house_support_score IS NOT NULL THEN 1 ELSE 0 END) AS scored_votes_rejected
+ ,ROUND(SUM(a.zero_to_one_state_senate_support_score * (CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.zero_to_one_state_senate_support_score IS NOT NULL then 1 ELSE 0 END)::float), 0) AS rejected_projected_dem_ballots
+ ,ROUND(SUM(a.zero_to_one_state_senate_support_score * (CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.zero_to_one_state_senate_support_score IS NOT NULL then 1 ELSE 0 END)::float), 0) AS accepted_projected_dem_ballots
+, SUM(CASE WHEN a.date_voted IS NOT NULL THEN 1 ELSE 0 END) AS ballots_submitted
+,sum(case when a.date_voted is not null and a.ballot_status = 'Ballot Rejected' then 1 else 0 end) as ballots_rejected
+,sum (case when a.date_voted is not null and a.ballot_status = 'Ballot Cancelled' then 1 else 0 end) as ballots_cancelled_by_voter
+,sum (case when a.date_voted is not null and a.ballot_status = 'Ballot Accepted' then 1 else 0 end) as ballots_approved
+, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.zero_to_one_state_house_support_score IS NOT NULL THEN 1 ELSE 0 END) AS scored_people_who_submitted_votes
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.party_name_dnc = 'Democratic' THEN 1 ELSE 0 END) AS reg_dem_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.party_name_dnc = 'Republican' THEN 1 ELSE 0 END) AS reg_repub_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.party_name_dnc NOT IN ('Democratic', 'Republican') AND a.party_name_dnc IS NOT NULL THEN 1 ELSE 0 END) AS reg_ind_or_third_party_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.party_name_dnc IS NULL THEN 1 ELSE 0 END) AS no_party_reg_ballots_submitted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.party_name_dnc = 'Democratic' THEN 1 ELSE 0 END) AS dem_ballot_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.party_name_dnc = 'Republican' THEN 1 ELSE 0 END) AS repub_ballot_rejected
+	 ,SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.party_name_dnc = 'Democratic' THEN 1 ELSE 0 END) AS dem_ballot_Accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.party_name_dnc = 'Republican' THEN 1 ELSE 0 END) AS repub_ballot_Accepted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.ethnicity = 'AAPI' THEN 1 ELSE 0 END) AS aapi_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.ethnicity = 'Black' THEN 1 ELSE 0 END) AS black_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.ethnicity = 'Latinx' THEN 1 ELSE 0 END) AS latinx_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.ethnicity = 'Native American' THEN 1 ELSE 0 END) AS native_american_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.ethnicity = 'White' THEN 1 ELSE 0 END) AS white_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.ethnicity = 'Other Race' THEN 1 ELSE 0 END) AS other_race_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.ethnicity = 'Race Unknown' THEN 1 ELSE 0 END) AS race_unknown_ballots_submitted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.ethnicity = 'AAPI' THEN 1 ELSE 0 END) AS aapi_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.ethnicity = 'Black' THEN 1 ELSE 0 END) AS black_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.ethnicity = 'Latinx' THEN 1 ELSE 0 END) AS latinx_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.ethnicity = 'Native American' THEN 1 ELSE 0 END) AS native_american_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.ethnicity = 'White' THEN 1 ELSE 0 END) AS white_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.ethnicity = 'Other Race' THEN 1 ELSE 0 END) AS other_race_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.ethnicity = 'Race Unknown' THEN 1 ELSE 0 END) AS race_unknown_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.ethnicity = 'AAPI' THEN 1 ELSE 0 END) AS aapi_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.ethnicity = 'Black' THEN 1 ELSE 0 END) AS black_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.ethnicity = 'Latinx' THEN 1 ELSE 0 END) AS latinx_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.ethnicity = 'Native American' THEN 1 ELSE 0 END) AS native_american_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.ethnicity = 'White' THEN 1 ELSE 0 END) AS white_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.ethnicity = 'Other Race' THEN 1 ELSE 0 END) AS other_race_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.ethnicity = 'Race Unknown' THEN 1 ELSE 0 END) AS race_unknown_ballots_accepted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.age BETWEEN 18 AND 24 THEN 1 ELSE 0 END) AS age_18_to_24_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.age BETWEEN 25 AND 34 THEN 1 ELSE 0 END) AS age_25_to_34_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.age BETWEEN 35 AND 49 THEN 1 ELSE 0 END) AS age_35_to_49_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.age BETWEEN 50 AND 64 THEN 1 ELSE 0 END) AS age_50_to_64_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND a.age >= 65 THEN 1 ELSE 0 END) AS age_65_plus_ballots_submitted
+	, SUM(CASE WHEN a.date_voted IS NOT NULL AND (a.age <= 17 OR a.age IS NULL) THEN 1 ELSE 0 END) AS age_unknown_ballots_submitted
+		, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.age BETWEEN 18 AND 24 THEN 1 ELSE 0 END) AS age_18_to_24_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.age BETWEEN 25 AND 34 THEN 1 ELSE 0 END) AS age_25_to_34_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.age BETWEEN 35 AND 49 THEN 1 ELSE 0 END) AS age_35_to_49_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.age BETWEEN 50 AND 64 THEN 1 ELSE 0 END) AS age_50_to_64_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND a.age >= 65 THEN 1 ELSE 0 END) AS age_65_plus_ballots_rejected
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Rejected' AND (a.age <= 17 OR a.age IS NULL) THEN 1 ELSE 0 END) AS age_unknown_ballots_rejected
+		, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.age BETWEEN 18 AND 24 THEN 1 ELSE 0 END) AS age_18_to_24_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.age BETWEEN 25 AND 34 THEN 1 ELSE 0 END) AS age_25_to_34_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.age BETWEEN 35 AND 49 THEN 1 ELSE 0 END) AS age_35_to_49_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.age BETWEEN 50 AND 64 THEN 1 ELSE 0 END) AS age_50_to_64_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND a.age >= 65 THEN 1 ELSE 0 END) AS age_65_plus_ballots_accepted
+	, SUM(CASE WHEN a.ballot_status = 'Ballot Accepted' AND (a.age <= 17 OR a.age IS NULL) THEN 1 ELSE 0 END) AS age_unknown_ballots_accepted
+	, b.total_voters
+	, CASE WHEN a.state_code IN ('AK','AR','AZ','CA','CO','CT','DC','DE','FL','IA','ID','KS','KY','LA','MA','MD','ME','MT','NC','ND','NE'
+,'NH','NJ','NM','NV','NY','OK','OR','PA','RI','SD','UT','VT','WV','WY') THEN b.reg_dems ELSE NULL end AS reg_dems
+	, CASE WHEN a.state_code IN ('AK','AR','AZ','CA','CO','CT','DC','DE','FL','IA','ID','KS','KY','LA','MA','MD','ME','MT','NC','ND','NE'
+,'NH','NJ','NM','NV','NY','OK','OR','PA','RI','SD','UT','VT','WV','WY') THEN b.reg_repubs ELSE NULL end AS reg_repubs
+,b.race_registered_white
+,b.race_registered_non_white
+	,g.projected_turnout
+FROM jdickinson1.rb_2020_step_03v2 a
+left join 
+jdickinson1.ev_crosswalk e on e.state_code || e.state_house_district_latest = a.state_code || a.state_senate_district_latest AND e.chamber = 'state_senate' -- WE FORGOT TO RENAME THE DISTRICT FIELD IN THIS TABLE, SO THAT'S WHY IT SAYS HOUSE HERE.
+ left JOIN 
+ tpietrzyk.score_based_turnout_projections_20200618 g ON e.state_code ||e.state_house_district_civis= g.state_code || g.state_house_district_civis AND g.chamber = 'state_senate' -- SAME ISSUE HERE WITH FORGETTING TO RENAME THE ISTRICT FIELD.
+
+LEFT JOIN
+(
+SELECT
+	ap.state_code
+	, ap.state_senate_district_latest AS district
+	,ap.county_name
+	, COUNT(DISTINCT ap.person_id) AS total_voters
+	, SUM(CASE WHEN ap.party_name_dnc = 'Democratic' THEN 1 ELSE 0 END) AS reg_dems
+	, SUM(CASE WHEN ap.party_name_dnc = 'Republican' THEN 1 ELSE 0 END) AS reg_repubs
+	,SUM(CASE WHEN ap.ethnicity_combined = 'W' THEN 1 ELSE 0 END) AS race_registered_white
+,SUM(CASE WHEN ap.ethnicity_combined IS NULL OR ap.ethnicity_combined != 'W' THEN 1 ELSE 0 END) AS race_registered_non_white
+FROM phoenix_analytics.person ap
+WHERE ap.state_house_district_latest IS NOT NULL
+	AND ap.state_senate_district_latest IS NOT NULL
+	AND ap.state_code IN ('AK','AR','AZ','CA','CO','CT','DC','DE','FL','GA','MI','MN','IA','ID','KS','KY','LA','MA','MD','MO','ME','MT','NC','ND','NE','NH','NJ','NM','NV','NY','OK','OR','PA','RI','SD','UT','VT','WV','WI','WY')
+	AND ap.reg_voter_flag = TRUE
+	AND ap.reg_record_merged = FALSE
+	AND ap.is_deceased = FALSE
+	AND ap.out_of_state_ncoa = FALSE
+GROUP BY 1, 2, 3
+ORDER BY 1, 2, 3
+) b ON a.state_code || a.state_senate_district_latest || a.county_name = b.state_code || b.district || b.county_name
+WHERE a.state_senate_district_latest IS NOT NULL
+GROUP BY 1, 2, 3, 4 ,5,6, b.total_voters, b.reg_dems, b.reg_repubs,b.race_registered_white,b.race_registered_non_white, g.projected_turnout
+ORDER BY 1, 2, 3, 4, 5
+)
+)ag 
+join jdickinson1.ev_av_2020_dicstricts_of_interest d
+on ag.state_code||ag.chamber||ag.district = d.state_code||d.chamber||d.ap_district
+where ag.state_code not in ('AL','LA','VA','MD','MS','NJ') and (ag.state_code||ag.chamber NOT IN ('NH'||'Lower Chamber', 'MI'||'Upper Chamber'))
+
+;
+
+
+
+
+--export statement, should run every day
+
+SELECT *
+FROM jdickinson1.ev_av_2020_aggregation_v2;
